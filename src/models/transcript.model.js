@@ -5,7 +5,7 @@ const Transcript = mongoose.model('Transcript', {
     name: String,
     img: String,
     text: String,
-    time: Date,
+    timestamp: Date,
     meetingID: String
 });
 
