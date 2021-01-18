@@ -107,16 +107,19 @@ const info = _dom => {
     const [imageAndName, ...textFirst] = _dom.split('<span><span class="CNusmb">');
     obj.text = textFirst.join('').replace(/<[^>]*>?/gm, '');
     
+    obj.timestamp = String(new Date());
     return obj;
 }
 
 const prototype = {
     img: '',
     name: '',
-    text: ''
+    text: '',
+    timestamp: 0
 };
 class Transcript {
     transcripts = [prototype];
+    isNew = false;
 
     constructor() {
         this.transcripts = [];
@@ -134,7 +137,7 @@ class Transcript {
     replaceWithNew = (obj) => this.transcripts[this.lastIndex] = obj;
 
     setObj = (obj = prototype) => {
-        if (!this.last) this.addNew(obj);
+        if (!this.last || this.isNew) this.addNew(obj);
         else if (this.last.img === obj.img) this.replaceWithNew(obj);
         else this.addNew(obj);
     }
@@ -142,6 +145,7 @@ class Transcript {
     afterOneSecon = (dom) => {
         const arrOfDivs = getFilterred(dom.split('<div class="TBMuR bj4p3b" style="">'));
         arrOfDivs.forEach(obj => this.setObj(info(obj)));
+        this.isNew = arrOfDivs.length === 0;
     }
 
 }
@@ -155,11 +159,10 @@ const domChanged = () => {
         transcript.afterOneSecon(dom);
 
         console.log(transcript.transcripts)
-        // if (dom && dom.innerText !== prevElement) {
-        //     prevElement = dom.innerText
-        //     transcript.push(prevElement)
-        // }
-        // console.log(transcript);
+        if (transcript.transcripts.length > 10) {
+            console.log('Final Transcript', transcript.transcripts);
+            tab.close();
+        }
     }, 1000)
 
     // console.log('Dom Changed event registered.');
