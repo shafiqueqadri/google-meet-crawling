@@ -1,8 +1,14 @@
 
+const mongoose = require('mongoose');
+mongoose.connect('mongodb://localhost:27017/meeting-scrapper', {useNewUrlParser: true, useUnifiedTopology: true});
+const { Transcript } = require('./src/models/transcript.model')
+
 // Get environment variables for Skuid site credentials
 const baseUrl = 'https://accounts.google.com/signin/v2/identifier?hl=en&passive=true&continue=https%3A%2F%2Fwww.google.com%2F%3Fgws_rd%3Dssl&ec=GAZAAQ&flowName=GlifWebSignIn&flowEntry=ServiceLogin';
 const username = 'renesissocial@gmail.com';
 const password = 'RENESISsocial';
+
+let meetingID = 'crn-oeyj-bqn';
 
 require("chromedriver");
 
@@ -71,7 +77,7 @@ tabToOpen.then(function () {
     })
     .then(async function () {
         return new Promise((resolve) => setTimeout(async () => {
-            const meet = await tab.get('https://meet.google.com/ujb-ozsx-njn');
+            const meet = await tab.get(`https://meet.google.com/${meetingID}`);
             resolve(true)
         }, 5000))
     })
@@ -97,7 +103,9 @@ tabToOpen.then(function () {
 const getFilterred = arr => arr.filter(a => a.trim().length > 1)
 
 const info = _dom => {
-    let obj = {};
+    let obj = {
+        meetingID
+    };
     const [imgFirst] = getFilterred(_dom.split('<img class="KpxDtd r6DyN" src="'));
     obj.img = getFilterred(imgFirst.split('" alt="" data-iml="'))[0];
     
@@ -117,7 +125,7 @@ const prototype = {
     text: '',
     timestamp: 0
 };
-class Transcript {
+class CTranscript {
     transcripts = [prototype];
     isNew = false;
 
@@ -146,13 +154,23 @@ class Transcript {
         const arrOfDivs = getFilterred(dom.split('<div class="TBMuR bj4p3b" style="">'));
         arrOfDivs.forEach(obj => this.setObj(info(obj)));
         this.isNew = arrOfDivs.length === 0;
+
+        // Insert To Database
+        this.insertToDatabase();
+    }
+
+    insertToDatabase = () => {
+        if (this.transcripts.length < 2) return;
+        let last = this.transcripts.pop();
+        Transcript.insertMany([...this.transcripts]);
+        this.transcripts = [last];
     }
 
 }
 
 const domChanged = () => {
 
-    let transcript = new Transcript();
+    let transcript = new CTranscript();
 
     setInterval(async () => {
         const dom = await tab.findElement(swd.By.css(".a4cQT")).getAttribute('innerHTML');
